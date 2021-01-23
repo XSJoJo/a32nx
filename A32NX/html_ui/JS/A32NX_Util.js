@@ -87,3 +87,134 @@ class UpdateThrottler {
         }
     }
 }
+
+class Tracer {
+
+    constructor() {
+        this.enabled = true;
+        this.names = [];
+        this.events = [];
+        this.refreshNumber = 0;
+        this.pid = "(not set)";
+    }
+
+    setPid(pid) {
+        this.pid = pid;
+    }
+
+    begin(name) {
+        if (!this.enabled) {
+            return;
+        }
+        this.names.push(name)
+        this.events.push({"name": name, "cat": "PERF", "ph": "B", "pid":this.pid, "tid": this.pid, "ts": window.performance.now() * 1000});
+    }
+
+    end() {
+        if (!this.enabled) {
+            return;
+        }
+        if (this.names.length === 0) {
+            return;
+        }
+        let name = this.names.pop();
+        this.events.push({"name": name, "cat": "PERF", "ph": "E", "pid": this.pid, "tid": this.pid, "ts": window.performance.now() * 1000});
+    }
+
+    postPeriodically() {
+        if (!this.enabled) {
+            return;
+        }
+        let d = new Date();
+        let t = d.getTime();
+        const number = Math.floor(t / 10000);
+        const update = number > this.refreshNumber;
+        this.refreshNumber = number;
+        if (update) {
+            this.post();
+        }
+    }
+
+    post() {
+        fetch("http://127.0.0.1:5000/ping", {
+            mode: 'cors',
+            method: 'GET'
+        }).then((response) => {
+            if (response.status !== 501) {
+                this.events = [];
+                return;
+            }
+            console.log("Tracing active");
+            const dataToSend = JSON.stringify(this.events);
+            fetch("http://127.0.0.1:5000/collect?instrument=" + this.pid, {
+                method: 'POST',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'text/plain',
+                },
+                body: dataToSend
+            }).then((response) => {
+                console.log("Posted data!");
+            }).catch((reason) => {
+                console.log("Failed! " + reason);
+            });
+            this.events = [];
+        }).catch((error) => {
+            this.events = [];
+        });
+    }
+}
+
+tracer = new Tracer();
+
+var origSetInterval = window.setInterval;
+window.setInterval = function(func, time, args) {
+    return origSetInterval((arg) => {
+        tracer.begin("interval");
+        func(arg);
+        tracer.end();
+    }, time, args);
+}
+
+var origRequestAnimationFrame = window.requestAnimationFrame;
+window.requestAnimationFrame = function(callback) {
+    return origRequestAnimationFrame((number) => {
+        tracer.begin("anim");
+        callback(number);
+        tracer.end();
+    });
+}
+
+var origSetTimeout = window.setTimeout;
+window.setTimeout = function(func, time, args) {
+    return origSetTimeout((arg) => {
+        tracer.begin("timeout");
+        func(arg);
+        tracer.end();
+    }, time, args);
+}
+
+/*var origCoherentOn = Coherent.on;
+Coherent.on = function(name, func, context) {
+    return origCoherentOn(name, (args) => {
+        tracer.begin("Coherent.on" + name);
+        func(args);
+        tracer.end();
+    }, context);
+}
+
+var origCoherentCall = Coherent.call;
+Coherent.call = function(name, ...args) {
+    let promise = origCoherentCall(name, args);
+    return new Promise(function(resolve, reject) {
+        promise.then((args) => {
+            tracer.begin("Coherent.callback" + name);
+            resolve(args);
+            tracer.end();
+        }).catch((args) => {
+            tracer.begin("Coherent.callbackFail" + name);
+            reject(args);
+            tracer.end();
+        });
+    });
+}*/

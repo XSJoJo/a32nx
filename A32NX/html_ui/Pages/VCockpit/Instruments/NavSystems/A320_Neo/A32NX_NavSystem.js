@@ -1,4 +1,5 @@
 class NavSystem extends BaseInstrument {
+
     constructor() {
         super(...arguments);
         this.soundSourceNode = "AS1000_MFD";
@@ -49,6 +50,7 @@ class NavSystem extends BaseInstrument {
         this.menuSliderCursor = this.getChildById("SliderMenuCursor");
         this.currFlightPlanManager = new FlightPlanManager(this);
         this.currFlightPlan = new FlightPlan(this, this.currFlightPlanManager);
+        tracer.setPid(this.instrumentIdentifier);
     }
     disconnectedCallback() {
         super.disconnectedCallback();
@@ -284,6 +286,7 @@ class NavSystem extends BaseInstrument {
     onInteractionEvent(_args) {
         if (this.isElectricityAvailable() || SimVar.GetSimVarValue("L:DCPowerAvailable", "Bool") == 1) {
             let event = this.DecomposeEventFromPrefix(_args);
+            window.console.log(event);
             if (event) {
                 if (event == "ElementSetAttribute" && _args.length >= 4) {
                     const element = this.getChildById(_args[1]);
@@ -320,6 +323,7 @@ class NavSystem extends BaseInstrument {
         this.budgetedItemId = 0;
     }
     Update() {
+        tracer.begin(this.instrumentIdentifier);
         super.Update();
         if (this.CanUpdate()) {
             if (NavSystem._iterations < 10000) {
@@ -410,6 +414,8 @@ class NavSystem extends BaseInstrument {
                 this.alwaysUpdateList[i].onUpdate(this.deltaTime);
             }
         }
+        tracer.end("Update");
+        tracer.postPeriodically();
     }
     updateGroups() {
         for (let i = 0; i < this.IndependentsElements.length; i++) {
