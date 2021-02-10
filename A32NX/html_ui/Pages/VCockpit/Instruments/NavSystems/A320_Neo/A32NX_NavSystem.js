@@ -320,6 +320,7 @@ class NavSystem extends BaseInstrument {
         this.budgetedItemId = 0;
     }
     Update() {
+        countObjects();
         super.Update();
         if (this.CanUpdate()) {
             if (NavSystem._iterations < 10000) {

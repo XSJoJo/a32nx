@@ -29,6 +29,7 @@ class A320_Neo_FCU extends BaseAirliners {
     onUpdate(_deltaTime) {
         super.onUpdate(_deltaTime);
         this.updateMachTransition();
+        countObjects();
     }
     onEvent(_event) {
     }

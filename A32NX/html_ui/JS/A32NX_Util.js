@@ -87,3 +87,33 @@ class UpdateThrottler {
         }
     }
 }
+
+function countObjects() {
+    let count = 0;
+    let objects = [window];
+    let visited = new Set();
+    while (objects.length > 0 && count < 1000000) {
+        let object = objects.pop();
+        count++;
+        if (typeof object === 'object' && object !== null) {
+            let keys = Object.getOwnPropertyNames(object);
+            for (let i = 0; i < keys.length; i++) {
+                let child = object[keys[i]];
+                if (!visited.has(child)) {
+                    visited.add(child);
+                    objects.push(child);
+                }
+            }
+        }
+        if (Array.isArray(object)) {
+            for (let i = 0; i < object.length; i++) {
+                let child = object[i];
+                if (!visited.has(child)) {
+                    visited.add(child);
+                    objects.push(child);
+                }
+            }
+        }
+    }
+    console.log("Count: " + count);
+}

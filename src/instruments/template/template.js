@@ -4,6 +4,7 @@
 /* global registerInstrument */
 
 // eslint-disable-next-line camelcase
+
 class A32NX_INSTRUMENT_NAME_Logic extends BaseInstrument {
     get templateID() {
         return 'A32NX_INSTRUMENT_NAME_TEMPLATE';
@@ -37,6 +38,7 @@ class A32NX_INSTRUMENT_NAME_Logic extends BaseInstrument {
     }
 
     Update() {
+        countObjects();
         super.Update();
         if (this.CanUpdate()) {
             this.dispatchEvent(new CustomEvent('update', { detail: this.deltaTime }));
